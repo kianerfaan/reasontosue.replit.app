@@ -1,4 +1,4 @@
-# reasontosue.com
+# ReasonToSue.com
 
 Welcome to the repository for **reasontosue.com**, a project designed to assist with legal queries using AI. 
 
@@ -29,4 +29,4 @@ Contributions are welcome! Please fork the repository and submit pull requests f
 Please note: This project does not provide legal advice. The information provided by reasontosue.com is for general informational purposes only and should not be construed as legal advice. Always consult with a qualified attorney regarding any legal issues or concerns.
 
 Thank you for your interest in reasontosue.com!
-# ReasonToSue
+# ReasonToSue.com
