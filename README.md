@@ -1,4 +1,4 @@
-# Reason To Sue - AI Legal Assistant
+# ReasonToSue.com
 
 A web-based AI legal assistant that leverages GroqCloud's Mixtral-8x7b-32768 model to provide preliminary legal analysis for potential legal claims. This application offers a user-friendly interface for submitting cases and receiving structured legal insights.
 
@@ -116,4 +116,4 @@ The application will be available at `http://localhost:3000`
 5. Open a Pull Request
 
 ## 📄 License
-This project is licensed under the Apache 2.0 - see the LICENSE file for details.
+This project is licensed under the Apache-2.0 - see the LICENSE file for details.
