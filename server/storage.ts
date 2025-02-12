@@ -1,38 +1,66 @@
-import { db } from "./db";
-import { tariffQueries, queryFeedback, type TariffQuery, type InsertTariffQuery, type InsertQueryFeedback } from "@shared/schema";
-import { desc } from "drizzle-orm";
+import { type User, type InsertUser, type LegalCase, type InsertLegalCase } from "@shared/schema";
 
 export interface IStorage {
-  getTariffQueries(): Promise<TariffQuery[]>;
-  createTariffQuery(query: InsertTariffQuery): Promise<TariffQuery>;
-  getRecentQueries(limit: number): Promise<TariffQuery[]>;
-  addQueryFeedback(feedback: InsertQueryFeedback): Promise<void>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  getLegalCase(id: number): Promise<LegalCase | undefined>;
+  createLegalCase(legalCase: InsertLegalCase & { analysis: string }): Promise<LegalCase>;
 }
 
-export class DatabaseStorage implements IStorage {
-  async getTariffQueries(): Promise<TariffQuery[]> {
-    return await db.select().from(tariffQueries).orderBy(tariffQueries.queryDate);
+export class MemoryStorage implements IStorage {
+  private users: User[] = [];
+  private legalCases: LegalCase[] = [];
+  private userId = 1;
+  private legalCaseId = 1;
+
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.find(user => user.id === id);
   }
 
-  async createTariffQuery(insertQuery: InsertTariffQuery): Promise<TariffQuery> {
-    const [query] = await db
-      .insert(tariffQueries)
-      .values(insertQuery)
-      .returning();
-    return query;
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return this.users.find(user => user.username === username);
   }
 
-  async getRecentQueries(limit: number): Promise<TariffQuery[]> {
-    return await db
-      .select()
-      .from(tariffQueries)
-      .orderBy(desc(tariffQueries.queryDate))
-      .limit(limit);
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const user: User = {
+      id: this.userId++,
+      ...insertUser,
+      createdAt: new Date()
+    };
+    this.users.push(user);
+    return user;
   }
 
-  async addQueryFeedback(feedback: InsertQueryFeedback): Promise<void> {
-    await db.insert(queryFeedback).values(feedback);
+  async getLegalCase(id: number): Promise<LegalCase | undefined> {
+    return this.legalCases.find(legalCase => legalCase.id === id);
+  }
+
+  async createLegalCase(insertLegalCase: InsertLegalCase & { analysis: string }): Promise<LegalCase> {
+    // For now, let's create a temporary user if none exists
+    let userId = 1;
+    const existingUser = this.users[0];
+
+    if (!existingUser) {
+      const newUser = await this.createUser({
+        username: "temporary_user",
+        email: "temp@example.com",
+        passwordHash: "temporary"
+      });
+      userId = newUser.id;
+    } else {
+      userId = existingUser.id;
+    }
+
+    const legalCase: LegalCase = {
+      id: this.legalCaseId++,
+      userId,
+      ...insertLegalCase,
+      createdAt: new Date()
+    };
+    this.legalCases.push(legalCase);
+    return legalCase;
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemoryStorage();

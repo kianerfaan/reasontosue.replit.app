@@ -1,47 +1,39 @@
-import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const tariffQueries = pgTable("tariff_queries", {
-  id: serial("id").primaryKey(),
-  importerCountry: text("importer_country").notNull(),  
-  exporterCountry: text("exporter_country").notNull(),
-  productDescription: text("product_description").notNull(),
-  tariffRate: text("tariff_rate").notNull(),
-  queryDate: timestamp("query_date").notNull().defaultNow(),
-  informationDate: text("information_date").notNull(),
-});
+// Types for User
+export type User = {
+  id: number;
+  username: string;
+  email: string;
+  passwordHash: string;
+  createdAt: Date;
+};
 
-// Feedback table
-export const queryFeedback = pgTable("query_feedback", {
-  id: serial("id").primaryKey(),
-  queryId: integer("query_id").notNull(),
-  isPositive: boolean("is_positive").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+// Types for LegalCase
+export type LegalCase = {
+  id: number;
+  userId: number;
+  description: string;
+  jurisdiction: string;
+  analysis?: string;
+  incidentDate?: string;
+  response?: string;
+  createdAt: Date;
+};
 
-// Schema for inserting into database - includes tariffRate
-export const insertTariffQuerySchema = createInsertSchema(tariffQueries).omit({
-  id: true,
-  queryDate: true,
-});
+// Schemas for validation
+export const insertUserSchema = z.object({
+  username: z.string().min(3).max(100),
+  email: z.string().email(),
+  password: z.string().min(8).max(100),
+}).strict();
 
-export type InsertTariffQuery = z.infer<typeof insertTariffQuerySchema>;
-export type TariffQuery = typeof tariffQueries.$inferSelect;
+export const insertLegalCaseSchema = z.object({
+  description: z.string().min(10).max(2000),
+  jurisdiction: z.string().min(2).max(100),
+  incidentDate: z.string().optional(),
+  response: z.string().optional(),
+}).strict();
 
-// Form validation schema - excludes tariffRate as it's determined by the API
-export const tariffFormSchema = insertTariffQuerySchema.omit({
-  tariffRate: true,
-  informationDate: true,
-});
-
-export type TariffFormData = z.infer<typeof tariffFormSchema>;
-
-// Feedback schema
-export const insertFeedbackSchema = createInsertSchema(queryFeedback).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertQueryFeedback = z.infer<typeof insertFeedbackSchema>;
-export type QueryFeedback = typeof queryFeedback.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertLegalCase = z.infer<typeof insertLegalCaseSchema>;

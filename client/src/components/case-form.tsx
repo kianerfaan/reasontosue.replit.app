@@ -3,17 +3,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { insertLegalCaseSchema, type InsertLegalCase } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
+/**
+ * CaseForm Component
+ * Handles the submission and validation of legal case details
+ */
 export default function CaseForm() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  // Initialize form with Zod schema validation
   const form = useForm<InsertLegalCase>({
     resolver: zodResolver(insertLegalCaseSchema),
     defaultValues: {
@@ -22,6 +34,7 @@ export default function CaseForm() {
     }
   });
 
+  // Handle form submission and API interaction
   const mutation = useMutation({
     mutationFn: async (data: InsertLegalCase) => {
       const res = await apiRequest("POST", "/api/analyze", data);
@@ -41,7 +54,11 @@ export default function CaseForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
+      <form 
+        onSubmit={form.handleSubmit((data) => mutation.mutate(data))} 
+        className="space-y-6"
+      >
+        {/* Case Description Field */}
         <FormField
           control={form.control}
           name="description"
@@ -60,6 +77,7 @@ export default function CaseForm() {
           )}
         />
 
+        {/* Jurisdiction Field */}
         <FormField
           control={form.control}
           name="jurisdiction"
@@ -67,13 +85,17 @@ export default function CaseForm() {
             <FormItem>
               <FormLabel>Jurisdiction</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="e.g., California, USA" />
+                <Input 
+                  {...field} 
+                  placeholder="e.g., California, USA" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Submit Button */}
         <Button
           type="submit"
           className="w-full bg-[#003366] hover:bg-[#002244]"
