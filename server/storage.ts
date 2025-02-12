@@ -1,8 +1,6 @@
-import { users, type User, type InsertUser } from "@shared/schema";
-import { type LegalCase, type InsertLegalCase } from "@shared/schema";
-
-// modify the interface with any CRUD methods
-// you might need
+import { users, legalCases, type User, type InsertUser, type LegalCase, type InsertLegalCase } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -12,48 +10,80 @@ export interface IStorage {
   createLegalCase(legalCase: InsertLegalCase & { analysis: string }): Promise<LegalCase>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private cases: Map<number, LegalCase>;
-  currentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.cases = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      throw new Error("Failed to fetch user");
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user by username:", error);
+      throw new Error("Failed to fetch user by username");
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    try {
+      const [user] = await db
+        .insert(users)
+        .values(insertUser)
+        .returning();
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("Failed to create user");
+    }
   }
+
   async getLegalCase(id: number): Promise<LegalCase | undefined> {
-    return this.cases.get(id);
+    try {
+      const [legalCase] = await db.select().from(legalCases).where(eq(legalCases.id, id));
+      return legalCase;
+    } catch (error) {
+      console.error("Error fetching legal case:", error);
+      throw new Error("Failed to fetch legal case");
+    }
   }
 
   async createLegalCase(insertLegalCase: InsertLegalCase & { analysis: string }): Promise<LegalCase> {
-    const id = this.currentId++;
-    const now = new Date();
-    const legalCase: LegalCase = {
-      ...insertLegalCase,
-      id,
-      createdAt: now,
-    };
-    this.cases.set(id, legalCase);
-    return legalCase;
+    try {
+      // For now, let's create a temporary user if none exists
+      let userId = 1;
+      const [existingUser] = await db.select().from(users).limit(1);
+
+      if (!existingUser) {
+        const [newUser] = await db.insert(users).values({
+          username: "temporary_user",
+          email: "temp@example.com",
+          passwordHash: "temporary"
+        }).returning();
+        userId = newUser.id;
+      } else {
+        userId = existingUser.id;
+      }
+
+      const [legalCase] = await db
+        .insert(legalCases)
+        .values({
+          ...insertLegalCase,
+          userId
+        })
+        .returning();
+      return legalCase;
+    } catch (error) {
+      console.error("Error creating legal case:", error);
+      throw new Error("Failed to create legal case");
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
