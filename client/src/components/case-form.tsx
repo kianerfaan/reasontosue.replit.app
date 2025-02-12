@@ -18,7 +18,7 @@ export default function CaseForm() {
     resolver: zodResolver(insertLegalCaseSchema),
     defaultValues: {
       description: "",
-      jurisdiction: ""
+      jurisdiction: "",
     }
   });
 

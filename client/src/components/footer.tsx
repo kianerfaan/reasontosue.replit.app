@@ -1,5 +1,4 @@
 import { Link } from "wouter";
-import { SiX } from "react-icons/si";
 
 export default function Footer() {
   return (
@@ -14,21 +13,8 @@ export default function Footer() {
             held liable for any errors or omissions.
           </div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-600">
-            <div>
-              © {new Date().getFullYear()} Reason To Sue. All rights reserved.
-            </div>
-            <div className="mt-2 md:mt-0 flex items-center gap-2">
-              Built by{" "}
-              <a
-                href="https://x.com/kianerfaan"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#003366] hover:text-[#4A90E2] flex items-center gap-1"
-              >
-                Kian Erfaan <SiX className="h-3.5 w-3.5" />
-              </a>
-            </div>
+          <div className="flex justify-center text-sm text-gray-600">
+            <span>© {new Date().getFullYear()} Reason To Sue.</span>
           </div>
         </div>
       </div>

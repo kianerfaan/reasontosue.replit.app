@@ -6,6 +6,13 @@ interface AnalysisDisplayProps {
   case: LegalCase;
 }
 
+function formatAnalysisText(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<h3 class="text-lg font-semibold text-[#003366] mt-6 mb-3">$1</h3>')
+    .replace(/__(.*?)__/g, '<u class="text-lg font-medium">$1</u>')
+    .replace(/\n/g, '<br />');
+}
+
 export default function AnalysisDisplay({ case: legalCase }: AnalysisDisplayProps) {
   return (
     <div className="space-y-6">
@@ -38,11 +45,12 @@ export default function AnalysisDisplay({ case: legalCase }: AnalysisDisplayProp
           <CardTitle className="font-serif text-[#003366]">Legal Analysis</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="prose max-w-none">
-            {legalCase.analysis?.split('\n').map((line, index) => (
-              <p key={index} className="my-2">{line}</p>
-            ))}
-          </div>
+          <div 
+            className="prose max-w-none space-y-4"
+            dangerouslySetInnerHTML={{ 
+              __html: legalCase.analysis ? formatAnalysisText(legalCase.analysis) : ''
+            }}
+          />
         </CardContent>
       </Card>
     </div>
