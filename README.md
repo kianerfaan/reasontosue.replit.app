@@ -1,47 +1,62 @@
-git clone https://github.com/kianerfaan/ReasonToSue.com.git
-cd reason-to-sue
+1. Set Database URL and API Key DATABASE_URL=postgresql://user:password@host:port/database
+
+GROQ_API_KEY=your_groq_api_key
+   ```
+
+3. Install Dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Database Setup:
+   ```bash
+   npm run db:push
+   ```
+
+5. Start Development Server:
+   ```bash
+   npm run dev
+   ```
+   Serves both frontend and backend on port 5000.
+
+## API Endpoints
+
+### Get Recent Queries
+```typescript
+GET /api/tariff/recent
+Response: TariffQuery[]
 ```
 
-2. Install dependencies:
-```bash
-npm install
+### Submit Tariff Query
+```typescript
+POST /api/tariff/query
+Body: {
+  importerCountry: string;
+  exporterCountry: string;
+  productDescription: string;
+}
+Response: TariffQuery
 ```
 
-3. Create a `.env` file in the root directory:
-```env
-GROQ_API_KEY=your_groq_api_key_here
-DATABASE_URL=your_postgresql_database_url
+### Submit Feedback
+```typescript
+POST /api/tariff/feedback
+Body: {
+  queryId: number;
+  isPositive: boolean;
+}
 ```
 
-4. Push the database schema:
-```bash
-npm run db:push
+## Project Structure
 ```
-
-5. Start the development server:
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:3000`
-
-## 🔑 API Configuration
-
-### GroqCloud Setup
-1. Sign up for a GroqCloud account at https://console.groq.com
-2. Generate an API key from the GroqCloud console
-3. Add the API key to your `.env` file
-
-## 📁 Project Structure
-```
-├── client/               # Frontend React application
+├── client/              # Frontend React application
 │   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utility functions
-│   │   └── pages/       # Page components
-├── server/              # Backend Express application
-│   ├── routes.ts        # API routes
-│   └── storage.ts       # Data storage interface
-├── shared/              # Shared types and schemas
-│   └── schema.ts        # Zod schemas and types
+│   │   ├── components/  # UI components
+│   │   ├── hooks/      # Custom React hooks
+│   │   ├── lib/        # Utilities and API clients
+│   │   └── pages/      # Route components
+├── server/             # Backend Express server
+│   ├── routes.ts      # API endpoints
+│   ├── storage.ts     # Database operations
+│   └── db.ts         # Database configuration
+└── shared/            # Shared TypeScript types and utilities

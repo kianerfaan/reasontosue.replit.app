@@ -1,136 +1,62 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { createServer } from "http";
 import { storage } from "./storage";
-import { insertLegalCaseSchema } from "@shared/schema";
-import { ZodError } from "zod";
-import OpenAI from "openai";
+import { insertTariffQuerySchema, insertFeedbackSchema } from "@shared/schema";
+import { z } from "zod";
+import { getTariffRate } from "@shared/groq";
 
-const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY_2,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+export function registerRoutes(app: Express) {
+  app.get("/api/tariff/recent", async (_req, res) => {
+    const queries = await storage.getRecentQueries(5);
+    res.json(queries);
+  });
 
-async function analyzeWithAI(caseDetails: string): Promise<{ analysis: string; response: string }> {
-  try {
-    console.log("Starting AI analysis with details:", caseDetails);
-
-    // Get today's date for the analysis
-    const today = new Date().toISOString().split('T')[0];
-
-    const response = await openai.chat.completions.create({
-      model: "mixtral-8x7b-32768",
-      messages: [
-        {
-          role: "system",
-          content: `You are a legal analysis assistant. Format your response with the following structure:
-
-__YES/NO: Clear statement if there are potential legal claims__
-
-**Initial Assessment**
-[Brief explanation of the initial assessment]
-
-**Potential Causes of Action**
-[List and explain potential legal claims]
-
-**Key Legal Theories**
-[Explain relevant legal principles]
-
-**Jurisdictional Considerations**
-[Analyze where the case could be filed]
-
-**Statute of Limitations Analysis**
-[Be very clear about deadlines and whether time remains to file]
-
-**Recommended Next Steps**
-[Actionable steps for the inquirer]
-
-**Potential Challenges and Risks**
-[Key obstacles and considerations]
-
-End with:
-__Final Recommendation: Clear YES/NO if there is a reason to sue__`
-        },
-        {
-          role: "user",
-          content: `${caseDetails}\nIncident Date: ${today}`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2048,
-    });
-
-    const analysis = response.choices[0]?.message?.content;
-    console.log("Received AI analysis:", analysis);
-
-    if (!analysis) {
-      throw new Error("No analysis content received from API");
-    }
-
-    // Generate response with statute of limitations
-    const incident = new Date(today);
-    // Default to 3 years statute of limitations if not specified differently in the analysis
-    const statuteYears = 3;
-    const statuteDate = new Date(incident);
-    statuteDate.setFullYear(statuteDate.getFullYear() + statuteYears);
-
-    const responseText = `Based on today's date (${incident.toLocaleDateString()}), and the applicable statute of limitations, legal action must be initiated before ${statuteDate.toLocaleDateString()} to preserve your rights.`;
-
-    return { analysis, response: responseText };
-  } catch (error) {
-    console.error("Error calling Groq API:", error instanceof Error ? error.message : String(error));
-    throw new Error("Failed to generate legal analysis");
-  }
-}
-
-export function registerRoutes(app: Express): Server {
-  app.post("/api/analyze", async (req, res) => {
+  app.post("/api/tariff/query", async (req, res) => {
     try {
-      const caseData = insertLegalCaseSchema.parse(req.body);
-      console.log("Received case data:", caseData);
+      // First validate the form data without tariffRate
+      const formData = req.body;
 
-      const { analysis, response } = await analyzeWithAI(
-        `Description: ${caseData.description}\nJurisdiction: ${caseData.jurisdiction}`
+      // Get tariff rate from GROQ API
+      const tariffInfo = await getTariffRate(
+        formData.importerCountry,
+        formData.exporterCountry,
+        formData.productDescription
       );
 
-      const savedCase = await storage.createLegalCase({
-        ...caseData,
-        analysis,
-        response,
-        incidentDate: new Date().toISOString().split('T')[0] // Set today's date
+      // Validate the complete data including tariffRate and informationDate
+      const data = insertTariffQuerySchema.parse({
+        ...formData,
+        tariffRate: tariffInfo.rate,
+        informationDate: tariffInfo.informationDate
       });
 
-      console.log("Saved case with analysis:", savedCase);
-      res.json(savedCase);
+      const query = await storage.createTariffQuery(data);
+
+      res.json(query);
     } catch (error) {
-      console.error("Error in /api/analyze:", error instanceof Error ? error.message : String(error));
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid input", errors: error.errors });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
       } else {
-        res.status(500).json({ message: error instanceof Error ? error.message : "Internal server error" });
+        console.error('Error processing tariff query:', error);
+        res.status(500).json({ message: "Failed to retrieve tariff information" });
       }
     }
   });
 
-  app.get("/api/cases/:id", async (req, res) => {
+  app.post("/api/tariff/feedback", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      console.log("Fetching case:", id);
-
-      const legalCase = await storage.getLegalCase(id);
-      console.log("Retrieved case:", legalCase);
-
-      if (!legalCase) {
-        res.status(404).json({ message: "Case not found" });
-        return;
-      }
-
-      res.json(legalCase);
+      const data = insertFeedbackSchema.parse(req.body);
+      await storage.addQueryFeedback(data);
+      res.json({ success: true });
     } catch (error) {
-      console.error("Error in /api/cases/:id:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ message: "Failed to retrieve case" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid feedback data", errors: error.errors });
+      } else {
+        console.error('Error saving feedback:', error);
+        res.status(500).json({ message: "Failed to save feedback" });
+      }
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }
