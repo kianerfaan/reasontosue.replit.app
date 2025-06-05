@@ -1,3 +1,5 @@
+Domain ReasonToSue.com was sold to Namecheap user OlvaBra1995 on June 5, 2025.
+
 # ReasonToSue
 
 ReasonToSue is an advanced web-based AI legal assistant that helps users understand their legal standing and potential case merit using state-of-the-art language models. Built with modern web technologies and hosted on Replit, this tool democratizes access to preliminary legal analysis.
